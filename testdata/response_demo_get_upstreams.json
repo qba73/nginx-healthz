@@ -1,0 +1,317 @@
+{
+    "demo-backend": {
+        "peers": [
+            {
+                "id": 0,
+                "server": "10.0.0.42:8084",
+                "name": "10.0.0.42:8084",
+                "backup": false,
+                "weight": 1,
+                "state": "up",
+                "active": 1,
+                "ssl": {
+                    "handshakes": 19804465,
+                    "handshakes_failed": 0,
+                    "session_reuses": 19804045
+                },
+                "requests": 19804577,
+                "header_time": 10,
+                "response_time": 10,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 17211239,
+                    "3xx": 8364,
+                    "4xx": 1721,
+                    "5xx": 0,
+                    "codes": {
+                        "200": 17211239,
+                        "301": 7922,
+                        "304": 442,
+                        "400": 1,
+                        "404": 1086,
+                        "405": 634
+                    },
+                    "total": 17221324
+                },
+                "sent": 7525687596,
+                "received": 16975908268,
+                "fails": 2583135,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 2852631,
+                    "fails": 0,
+                    "unhealthy": 0,
+                    "last_passed": true
+                },
+                "downtime": 0,
+                "selected": "2022-10-17T20:40:05Z"
+            },
+            {
+                "id": 1,
+                "server": "10.0.0.41:8084",
+                "name": "10.0.0.41:8084",
+                "backup": false,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "ssl": {
+                    "handshakes": 21808230,
+                    "handshakes_failed": 0,
+                    "session_reuses": 21807634
+                },
+                "requests": 21808401,
+                "header_time": 11,
+                "response_time": 11,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 19223719,
+                    "3xx": 275,
+                    "4xx": 1089,
+                    "5xx": 0,
+                    "codes": {
+                        "200": 19223718,
+                        "206": 1,
+                        "301": 100,
+                        "304": 175,
+                        "404": 623,
+                        "405": 466
+                    },
+                    "total": 19225083
+                },
+                "sent": 10110334767,
+                "received": 18490614676,
+                "fails": 2583132,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 2842218,
+                    "fails": 1,
+                    "unhealthy": 1,
+                    "last_passed": true
+                },
+                "downtime": 1012,
+                "selected": "2022-10-17T20:40:05Z"
+            }
+        ],
+        "keepalive": 0,
+        "zombies": 0,
+        "zone": "demo-backend"
+    },
+    "trac-backend": {
+        "peers": [
+            {
+                "id": 0,
+                "server": "10.0.0.10:8080",
+                "name": "10.0.0.10:8080",
+                "backup": false,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "requests": 716337,
+                "header_time": 10,
+                "response_time": 11,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 692292,
+                    "3xx": 22527,
+                    "4xx": 1512,
+                    "5xx": 0,
+                    "codes": {
+                        "200": 692127,
+                        "206": 165,
+                        "304": 22527,
+                        "405": 1512
+                    },
+                    "total": 716331
+                },
+                "sent": 321451912,
+                "received": 80530118804,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0,
+                "selected": "2022-10-17T20:40:05Z"
+            },
+            {
+                "id": 1,
+                "server": "10.0.0.11:8080",
+                "name": "10.0.0.11:8080",
+                "backup": true,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "requests": 0,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 0,
+                    "3xx": 0,
+                    "4xx": 0,
+                    "5xx": 0,
+                    "codes": {},
+                    "total": 0
+                },
+                "sent": 0,
+                "received": 0,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0
+            }
+        ],
+        "keepalive": 2,
+        "zombies": 0,
+        "zone": "trac-backend"
+    },
+    "hg-backend": {
+        "peers": [
+            {
+                "id": 0,
+                "server": "10.0.0.18:8080",
+                "name": "10.0.0.18:8080",
+                "backup": false,
+                "weight": 5,
+                "state": "up",
+                "active": 0,
+                "requests": 11683,
+                "header_time": 9,
+                "response_time": 10,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 11567,
+                    "3xx": 0,
+                    "4xx": 116,
+                    "5xx": 0,
+                    "codes": {
+                        "200": 11567,
+                        "405": 116
+                    },
+                    "total": 11683
+                },
+                "sent": 5033620,
+                "received": 1427793118,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0,
+                "selected": "2022-10-17T20:25:16Z"
+            },
+            {
+                "id": 1,
+                "server": "10.0.0.19:8080",
+                "name": "10.0.0.19:8080",
+                "backup": true,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "requests": 0,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 0,
+                    "3xx": 0,
+                    "4xx": 0,
+                    "5xx": 0,
+                    "codes": {},
+                    "total": 0
+                },
+                "sent": 0,
+                "received": 0,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0
+            }
+        ],
+        "keepalive": 0,
+        "zombies": 0,
+        "zone": "hg-backend"
+    },
+    "lxr-backend": {
+        "peers": [
+            {
+                "id": 0,
+                "server": "10.0.0.12:8080",
+                "name": "10.0.0.12:8080",
+                "backup": false,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "requests": 26829,
+                "header_time": 10,
+                "response_time": 10,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 25014,
+                    "3xx": 1321,
+                    "4xx": 488,
+                    "5xx": 0,
+                    "codes": {
+                        "200": 25003,
+                        "206": 11,
+                        "304": 1321,
+                        "405": 488
+                    },
+                    "total": 26823
+                },
+                "sent": 10277175,
+                "received": 2510214978,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0,
+                "selected": "2022-10-17T20:13:59Z"
+            },
+            {
+                "id": 1,
+                "server": "10.0.0.13:8080",
+                "name": "10.0.0.13:8080",
+                "backup": true,
+                "weight": 1,
+                "state": "up",
+                "active": 0,
+                "max_conns": 42,
+                "requests": 0,
+                "responses": {
+                    "1xx": 0,
+                    "2xx": 0,
+                    "3xx": 0,
+                    "4xx": 0,
+                    "5xx": 0,
+                    "codes": {},
+                    "total": 0
+                },
+                "sent": 0,
+                "received": 0,
+                "fails": 0,
+                "unavail": 0,
+                "health_checks": {
+                    "checks": 0,
+                    "fails": 0,
+                    "unhealthy": 0
+                },
+                "downtime": 0
+            }
+        ],
+        "keepalive": 0,
+        "zombies": 0,
+        "zone": "lxr-backend"
+    }
+}
