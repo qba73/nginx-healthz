@@ -67,7 +67,7 @@ func TestClientCallsValidPath(t *testing.T) {
 	t.Parallel()
 
 	var called bool
-	wantURI := "/demo.backend.com"
+	wantURI := "/api/8/http"
 	testFile := "testdata/response_get_upstream_all_servers_up.json"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,7 @@ func TestClientCallsValidPath(t *testing.T) {
 	defer ts.Close()
 
 	c := nginxhealthz.NewClient(ts.URL)
-	_, err := c.GetStats("demo.backend.com")
+	_, err := c.GetStats()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,11 +102,11 @@ func TestClientCallsValidPath(t *testing.T) {
 func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 	t.Parallel()
 
-	ts := newTestServerWithPathValidator("testdata/response_get_upstream_all_servers_up.json", "/demo.backend.com", t)
+	ts := newTestServerWithPathValidator("testdata/response_get_upstream_all_servers_up.json", "/api/8/http", t)
 	defer ts.Close()
 
 	c := nginxhealthz.NewClient(ts.URL)
-	got, err := c.GetStats("demo.backend.com")
+	got, err := c.GetStats()
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,4 +121,27 @@ func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 		t.Error(cmp.Diff(want, got))
 	}
 
+}
+
+func TestClientRetrievesZonesOnValidInput(t *testing.T) {
+	t.Parallel()
+
+	ts := newTestServerWithPathValidator("testdata/response_get_upstreams_zones.json", "/api/8/http/upstreams?fields=zone", t)
+	defer ts.Close()
+
+	c := nginxhealthz.NewClient(ts.URL)
+	got, err := c.GetZones()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"foo.example.com-demo-backend",
+		"bar.example.com-trac-backend",
+		"foo.example.org-hg-backend",
+		"bar.example.org-lxr-backend",
+	}
+
+	if !cmp.Equal(want, got) {
+		t.Error(cmp.Diff(want, got))
+	}
 }
