@@ -213,6 +213,29 @@ func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string]
 	return hostUpstreams
 }
 
+func (c *Client) GetStatsForHost(hostname string) (UpstreamStats, error) {
+	upstreams, err := c.GetUpstreamsFor(hostname)
+	if err != nil {
+		return UpstreamStats{}, fmt.Errorf("getting stats for host %s: %w", hostname, err)
+	}
+	ux, ok := upstreams[hostname]
+	if !ok {
+		return UpstreamStats{}, fmt.Errorf("no stat data for host %s", hostname)
+	}
+
+	stats := UpstreamStats{}
+	for _, u := range ux {
+		stat, err := c.GetStatsFor(u)
+		if err != nil {
+			return UpstreamStats{}, err
+		}
+		stats.Total += stat.Total
+		stats.Up += stat.Up
+		stats.Down += stat.Down
+	}
+	return stats, nil
+}
+
 func (c *Client) get(url string, data interface{}) error {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
