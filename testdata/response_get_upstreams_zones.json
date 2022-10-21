@@ -6,7 +6,7 @@
         "zone": "bar.example.com-trac-backend"
     },
     "hg-backend": {
-        "zone": "foo.example.org-hg-backend"
+        "zone": "bar.example.org-hg-backend"
     },
     "lxr-backend": {
         "zone": "bar.example.org-lxr-backend"

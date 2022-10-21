@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -177,29 +178,40 @@ func (c *Client) GetStats() (UpstreamStatus, error) {
 	}, nil
 }
 
-func (c *Client) GetZones() ([]string, error) {
+func (c *Client) GetUpstreamsFor(hostname string) (map[string][]string, error) {
 	url := fmt.Sprintf("%s/api/%d/http/upstreams?fields=zone", c.BaseURL, c.Version)
 
-	var res interface{}
-
-	err := c.get(url, &res)
+	var response interface{}
+	err := c.get(url, &response)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving zones: %w", err)
 	}
+	return hostnameUpstreamsFromResponse(hostname, response), nil
+}
 
-	var zones []string
-
+func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string][]string {
+	hostUpstreams := make(map[string][]string)
 	m := res.(map[string]interface{})
-	for _, v := range m {
+
+	for u, v := range m {
 		switch vv := v.(type) {
 		case map[string]interface{}:
 			for _, z := range vv {
-				zones = append(zones, z.(string))
+				host := z.(string)
+				host = strings.Split(host, "-")[0]
+				if host != hostname {
+					continue
+				}
+				_, ok := hostUpstreams[host]
+				if !ok {
+					hostUpstreams[host] = []string{u}
+					continue
+				}
+				hostUpstreams[host] = append(hostUpstreams[host], u)
 			}
 		}
 	}
-
-	return zones, nil
+	return hostUpstreams
 }
 
 func (c *Client) get(url string, data interface{}) error {

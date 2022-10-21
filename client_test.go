@@ -123,23 +123,19 @@ func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 
 }
 
-func TestClientRetrievesZonesOnValidInput(t *testing.T) {
+func TestClientGetsUpstreamsForHostnameOnValidInput(t *testing.T) {
 	t.Parallel()
 
 	ts := newTestServerWithPathValidator("testdata/response_get_upstreams_zones.json", "/api/8/http/upstreams?fields=zone", t)
 	defer ts.Close()
 
 	c := nginxhealthz.NewClient(ts.URL)
-	got, err := c.GetZones()
+	got, err := c.GetUpstreamsFor("bar.example.org")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{
-		"foo.example.com-demo-backend",
-		"bar.example.com-trac-backend",
-		"foo.example.org-hg-backend",
-		"bar.example.org-lxr-backend",
-	}
+
+	want := map[string][]string{"bar.example.org": {"hg-backend", "lxr-backend"}}
 
 	if !cmp.Equal(want, got) {
 		t.Error(cmp.Diff(want, got))
