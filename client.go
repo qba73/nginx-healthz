@@ -114,7 +114,7 @@ type responseUpstreams struct {
 	} `json:"upstreams"`
 }
 
-type UpstreamStatus struct {
+type UpstreamStats struct {
 	Total int
 	Up    int
 	Down  int
@@ -142,14 +142,18 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func (c *Client) GetStats() (UpstreamStatus, error) {
-	url := fmt.Sprintf("%s/api/%d/http", c.BaseURL, c.Version)
+func (c *Client) GetStatsFor(upstream string) (UpstreamStats, error) {
+	url := fmt.Sprintf("%s/api/%d/http/upstreams/%s", c.BaseURL, c.Version, upstream)
 	var res responseUpstream
 	if err := c.get(url, &res); err != nil {
-		return UpstreamStatus{}, err
+		return UpstreamStats{}, err
 	}
+	return calculateStatsFor(upstream, res)
+}
+
+func calculateStatsFor(upstream string, res responseUpstream) (UpstreamStats, error) {
 	if len(res.Peers) < 1 {
-		return UpstreamStatus{}, errors.New("no servers in upstream")
+		return UpstreamStats{}, errors.New("no servers in upstream")
 	}
 
 	servers := make([]ServerStatus, len(res.Peers))
@@ -163,19 +167,14 @@ func (c *Client) GetStats() (UpstreamStatus, error) {
 	}
 
 	total := len(servers)
-	var up int
+	up := 0
 	for _, i := range servers {
 		if i.Status == "up" {
 			up++
 		}
 	}
 	down := total - up
-
-	return UpstreamStatus{
-		Total: total,
-		Up:    up,
-		Down:  down,
-	}, nil
+	return UpstreamStats{Total: total, Up: up, Down: down}, nil
 }
 
 func (c *Client) GetUpstreamsFor(hostname string) (map[string][]string, error) {

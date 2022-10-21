@@ -67,7 +67,7 @@ func TestClientCallsValidPath(t *testing.T) {
 	t.Parallel()
 
 	var called bool
-	wantURI := "/api/8/http"
+	wantURI := "/api/8/http/upstreams/demo-backend"
 	testFile := "testdata/response_get_upstream_all_servers_up.json"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -89,7 +89,7 @@ func TestClientCallsValidPath(t *testing.T) {
 	defer ts.Close()
 
 	c := nginxhealthz.NewClient(ts.URL)
-	_, err := c.GetStats()
+	_, err := c.GetStatsFor("demo-backend")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,16 +102,19 @@ func TestClientCallsValidPath(t *testing.T) {
 func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 	t.Parallel()
 
-	ts := newTestServerWithPathValidator("testdata/response_get_upstream_all_servers_up.json", "/api/8/http", t)
+	ts := newTestServerWithPathValidator(
+		"testdata/response_get_upstream_all_servers_up.json",
+		"/api/8/http/upstreams/demo-backend", t,
+	)
 	defer ts.Close()
 
 	c := nginxhealthz.NewClient(ts.URL)
-	got, err := c.GetStats()
+	got, err := c.GetStatsFor("demo-backend")
 	if err != nil {
 		t.Error(err)
 	}
 
-	want := nginxhealthz.UpstreamStatus{
+	want := nginxhealthz.UpstreamStats{
 		Total: 2,
 		Up:    2,
 		Down:  0,
