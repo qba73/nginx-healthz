@@ -203,9 +203,9 @@ func (c *Client) GetStatsForUpstreams(ux []string) Stats {
 	wg.Add(len(ux))
 
 	for _, u := range ux {
-		go func(s string) {
+		go func(upstream string) {
 			defer wg.Done()
-			stat, err := c.GetStatsFor(s)
+			stat, err := c.GetStatsFor(upstream)
 			if err != nil {
 				return
 			}
