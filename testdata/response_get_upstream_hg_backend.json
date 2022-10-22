@@ -1,0 +1,97 @@
+{
+    "peers": [
+        {
+            "id": 0,
+            "server": "10.0.0.42:8084",
+            "name": "10.0.0.42:8084",
+            "backup": false,
+            "weight": 1,
+            "state": "up",
+            "active": 1,
+            "ssl": {
+                "handshakes": 19803694,
+                "handshakes_failed": 0,
+                "session_reuses": 19803274
+            },
+            "requests": 19803806,
+            "header_time": 10,
+            "response_time": 10,
+            "responses": {
+                "1xx": 0,
+                "2xx": 17210560,
+                "3xx": 8364,
+                "4xx": 1721,
+                "5xx": 0,
+                "codes": {
+                    "200": 17210560,
+                    "301": 7922,
+                    "304": 442,
+                    "400": 1,
+                    "404": 1086,
+                    "405": 634
+                },
+                "total": 17220645
+            },
+            "sent": 7525574329,
+            "received": 16975650045,
+            "fails": 2583043,
+            "unavail": 0,
+            "health_checks": {
+                "checks": 2852546,
+                "fails": 0,
+                "unhealthy": 0,
+                "last_passed": true
+            },
+            "downtime": 0,
+            "selected": "2022-10-17T20:38:40Z"
+        },
+        {
+            "id": 1,
+            "server": "10.0.0.41:8084",
+            "name": "10.0.0.41:8084",
+            "backup": false,
+            "weight": 1,
+            "state": "down",
+            "active": 0,
+            "ssl": {
+                "handshakes": 21808054,
+                "handshakes_failed": 0,
+                "session_reuses": 21807458
+            },
+            "requests": 21808225,
+            "header_time": 11,
+            "response_time": 11,
+            "responses": {
+                "1xx": 0,
+                "2xx": 19223635,
+                "3xx": 275,
+                "4xx": 1089,
+                "5xx": 0,
+                "codes": {
+                    "200": 19223634,
+                    "206": 1,
+                    "301": 100,
+                    "304": 175,
+                    "404": 623,
+                    "405": 466
+                },
+                "total": 19224999
+            },
+            "sent": 10110237497,
+            "received": 18490496811,
+            "fails": 2583040,
+            "unavail": 0,
+            "health_checks": {
+                "checks": 2842133,
+                "fails": 1,
+                "unhealthy": 1,
+                "last_passed": true
+            },
+            "downtime": 1012,
+            "selected": "2022-10-17T20:38:35Z"
+        }
+    ],
+    "keepalive": 0,
+    "zombies": 0,
+    "zone": "bar.example.org-hg-backend"
+}

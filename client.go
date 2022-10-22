@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -61,124 +64,92 @@ type responseUpstream struct {
 	Zone      string `json:"zone"`
 }
 
-type responseUpstreams struct {
-	Upstreams []struct {
-		Peers []struct {
-			ID     int    `json:"id"`
-			Server string `json:"server"`
-			Name   string `json:"name"`
-			Backup bool   `json:"backup"`
-			Weight int    `json:"weight"`
-			State  string `json:"state"`
-			Active int    `json:"active"`
-			Ssl    struct {
-				Handshakes       int `json:"handshakes"`
-				HandshakesFailed int `json:"handshakes_failed"`
-				SessionReuses    int `json:"session_reuses"`
-			} `json:"ssl"`
-			Requests     int `json:"requests"`
-			HeaderTime   int `json:"header_time"`
-			ResponseTime int `json:"response_time"`
-			Responses    struct {
-				OneXx   int `json:"1xx"`
-				TwoXx   int `json:"2xx"`
-				ThreeXx int `json:"3xx"`
-				FourXx  int `json:"4xx"`
-				FiveXx  int `json:"5xx"`
-				Codes   struct {
-					Num200 int `json:"200"`
-					Num301 int `json:"301"`
-					Num304 int `json:"304"`
-					Num400 int `json:"400"`
-					Num404 int `json:"404"`
-					Num405 int `json:"405"`
-				} `json:"codes"`
-				Total int `json:"total"`
-			} `json:"responses"`
-			Sent         int64 `json:"sent"`
-			Received     int64 `json:"received"`
-			Fails        int   `json:"fails"`
-			Unavail      int   `json:"unavail"`
-			HealthChecks struct {
-				Checks     int  `json:"checks"`
-				Fails      int  `json:"fails"`
-				Unhealthy  int  `json:"unhealthy"`
-				LastPassed bool `json:"last_passed"`
-			} `json:"health_checks"`
-			Downtime int       `json:"downtime"`
-			Selected time.Time `json:"selected"`
-		} `json:"peers"`
-		Keepalive int    `json:"keepalive"`
-		Zombies   int    `json:"zombies"`
-		Zone      string `json:"zone"`
-	} `json:"upstreams"`
-}
-
-type UpstreamStats struct {
+type Stats struct {
 	Total int
 	Up    int
 	Down  int
 }
 
-type ServerStatus struct {
-	Server string
-	Name   string
-	Status string
-}
+type option func(*Client) error
 
-type Client struct {
-	Version    int
-	BaseURL    string
-	HTTPClient *http.Client
-}
-
-func NewClient(baseURL string) *Client {
-	return &Client{
-		Version: 8,
-		BaseURL: baseURL,
-		HTTPClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
+func WithHTTPClient(h *http.Client) option {
+	return func(c *Client) error {
+		if h == nil {
+			return errors.New("nil http client")
+		}
+		c.httpClient = h
+		return nil
 	}
 }
 
-func (c *Client) GetStatsFor(upstream string) (UpstreamStats, error) {
-	url := fmt.Sprintf("%s/api/%d/http/upstreams/%s", c.BaseURL, c.Version, upstream)
+func WithVersion(v int) option {
+	return func(c *Client) error {
+		switch v {
+		case 1, 2, 3, 4, 5, 6, 7, 8:
+			c.version = v
+			return nil
+		default:
+			return fmt.Errorf("unsupported NGINX version: %d", v)
+		}
+	}
+}
+
+type Client struct {
+	version    int
+	baseURL    string
+	httpClient *http.Client
+}
+
+func NewClient(baseURL string, opts ...option) (*Client, error) {
+	_, err := url.ParseRequestURI(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %s, %w", baseURL, err)
+	}
+
+	c := Client{
+		version: 8,
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+	}
+
+	for _, opt := range opts {
+		if err := opt(&c); err != nil {
+			return nil, err
+		}
+	}
+	return &c, nil
+}
+
+func (c *Client) GetStatsFor(upstream string) (Stats, error) {
+	url := fmt.Sprintf("%s/api/%d/http/upstreams/%s", c.baseURL, c.version, upstream)
 	var res responseUpstream
 	if err := c.get(url, &res); err != nil {
-		return UpstreamStats{}, err
+		return Stats{}, err
 	}
 	return calculateStatsFor(upstream, res)
 }
 
-func calculateStatsFor(upstream string, res responseUpstream) (UpstreamStats, error) {
+func calculateStatsFor(upstream string, res responseUpstream) (Stats, error) {
 	if len(res.Peers) < 1 {
-		return UpstreamStats{}, errors.New("no servers in upstream")
+		return Stats{}, errors.New("no servers in upstream")
 	}
 
-	servers := make([]ServerStatus, len(res.Peers))
-	for i, p := range res.Peers {
-		s := ServerStatus{
-			Server: p.Server,
-			Name:   p.Name,
-			Status: p.State,
-		}
-		servers[i] = s
-	}
-
-	total := len(servers)
+	total := len(res.Peers)
 	up := 0
-	for _, i := range servers {
-		if i.Status == "up" {
+
+	for _, p := range res.Peers {
+		if p.State == "up" {
 			up++
 		}
 	}
 	down := total - up
-	return UpstreamStats{Total: total, Up: up, Down: down}, nil
+	return Stats{Total: total, Up: up, Down: down}, nil
 }
 
 func (c *Client) GetUpstreamsFor(hostname string) (map[string][]string, error) {
-	url := fmt.Sprintf("%s/api/%d/http/upstreams?fields=zone", c.BaseURL, c.Version)
+	url := fmt.Sprintf("%s/api/%d/http/upstreams?fields=zone", c.baseURL, c.version)
 
 	var response interface{}
 	err := c.get(url, &response)
@@ -213,27 +184,38 @@ func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string]
 	return hostUpstreams
 }
 
-func (c *Client) GetStatsForHost(hostname string) (UpstreamStats, error) {
+func (c *Client) GetStatsForHost(hostname string) (Stats, error) {
 	upstreams, err := c.GetUpstreamsFor(hostname)
 	if err != nil {
-		return UpstreamStats{}, fmt.Errorf("getting stats for host %s: %w", hostname, err)
+		return Stats{}, fmt.Errorf("getting stats for host %s: %w", hostname, err)
 	}
 	ux, ok := upstreams[hostname]
 	if !ok {
-		return UpstreamStats{}, fmt.Errorf("no stat data for host %s", hostname)
+		return Stats{}, fmt.Errorf("no stat data for host %s", hostname)
 	}
+	return c.GetStatsForUpstreams(ux), nil
+}
 
-	stats := UpstreamStats{}
+func (c *Client) GetStatsForUpstreams(ux []string) Stats {
+	var total, up, down uint64
+
+	var wg sync.WaitGroup
+	wg.Add(len(ux))
+
 	for _, u := range ux {
-		stat, err := c.GetStatsFor(u)
-		if err != nil {
-			return UpstreamStats{}, err
-		}
-		stats.Total += stat.Total
-		stats.Up += stat.Up
-		stats.Down += stat.Down
+		go func(s string) {
+			defer wg.Done()
+			stat, err := c.GetStatsFor(s)
+			if err != nil {
+				return
+			}
+			atomic.AddUint64(&total, uint64(stat.Total))
+			atomic.AddUint64(&up, uint64(stat.Up))
+			atomic.AddUint64(&down, uint64(stat.Down))
+		}(u)
 	}
-	return stats, nil
+	wg.Wait()
+	return Stats{Total: int(total), Up: int(up), Down: int(down)}
 }
 
 func (c *Client) get(url string, data interface{}) error {
@@ -242,7 +224,7 @@ func (c *Client) get(url string, data interface{}) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := c.HTTPClient.Do(req)
+	res, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("sending request: %w", err)
 	}
