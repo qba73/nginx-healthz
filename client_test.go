@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strings"
 	"testing"
 
@@ -15,20 +14,14 @@ import (
 	nginxhealthz "github.com/qba73/nginx-healthz"
 )
 
-func newTestServerWithPathValidator(testFile string, wantURI string, t *testing.T) *httptest.Server {
+func newTestServerWithPathValidator(respBody string, wantURI string, t *testing.T) *httptest.Server {
 	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		gotReqURI := r.RequestURI
 		verifyURIs(wantURI, gotReqURI, t)
 
-		f, err := os.Open(testFile)
+		_, err := io.WriteString(rw, respBody)
 		if err != nil {
 			t.Fatal(err)
-		}
-		defer f.Close()
-
-		_, err = io.Copy(rw, f)
-		if err != nil {
-			t.Fatalf("copying data from file %s to test HTTP server: %v", testFile, err)
 		}
 	}))
 	return ts
@@ -91,21 +84,14 @@ func TestClientCallsValidPath(t *testing.T) {
 
 	var called bool
 	wantURI := "/api/8/http/upstreams/demo-backend"
-	testFile := "testdata/response_get_upstream_all_servers_up.json"
 
 	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		gotReqURI := r.RequestURI
 		verifyURIs(wantURI, gotReqURI, t)
 
-		f, err := os.Open(testFile)
+		_, err := io.WriteString(rw, validResponseGetUpstreamAllServersUp)
 		if err != nil {
 			t.Fatal(err)
-		}
-		defer f.Close()
-
-		_, err = io.Copy(rw, f)
-		if err != nil {
-			t.Fatalf("copying data from file %s to test HTTP server: %v", testFile, err)
 		}
 		called = true
 	}))
@@ -129,7 +115,7 @@ func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 	t.Parallel()
 
 	ts := newTestServerWithPathValidator(
-		"testdata/response_get_upstream_all_servers_up.json",
+		validResponseGetUpstreamAllServersUp,
 		"/api/8/http/upstreams/demo-backend", t,
 	)
 	defer ts.Close()
@@ -160,7 +146,7 @@ func TestClientGetsUpstreamsForHostnameOnValidInput(t *testing.T) {
 	t.Parallel()
 
 	ts := newTestServerWithPathValidator(
-		"testdata/response_get_upstreams_zones.json",
+		validResponseGetUpstreamsZones,
 		"/api/8/http/upstreams?fields=zone", t)
 	defer ts.Close()
 
@@ -414,5 +400,118 @@ var (
 		"keepalive": 0,
 		"zombies": 0,
 		"zone": "bar.example.org-hg-backend"
+	}`
+
+	validResponseGetUpstreamAllServersUp = `{
+		"peers": [
+			{
+				"id": 0,
+				"server": "10.0.0.42:8084",
+				"name": "10.0.0.42:8084",
+				"backup": false,
+				"weight": 1,
+				"state": "up",
+				"active": 1,
+				"ssl": {
+					"handshakes": 19803694,
+					"handshakes_failed": 0,
+					"session_reuses": 19803274
+				},
+				"requests": 19803806,
+				"header_time": 10,
+				"response_time": 10,
+				"responses": {
+					"1xx": 0,
+					"2xx": 17210560,
+					"3xx": 8364,
+					"4xx": 1721,
+					"5xx": 0,
+					"codes": {
+						"200": 17210560,
+						"301": 7922,
+						"304": 442,
+						"400": 1,
+						"404": 1086,
+						"405": 634
+					},
+					"total": 17220645
+				},
+				"sent": 7525574329,
+				"received": 16975650045,
+				"fails": 2583043,
+				"unavail": 0,
+				"health_checks": {
+					"checks": 2852546,
+					"fails": 0,
+					"unhealthy": 0,
+					"last_passed": true
+				},
+				"downtime": 0,
+				"selected": "2022-10-17T20:38:40Z"
+			},
+			{
+				"id": 1,
+				"server": "10.0.0.41:8084",
+				"name": "10.0.0.41:8084",
+				"backup": false,
+				"weight": 1,
+				"state": "up",
+				"active": 0,
+				"ssl": {
+					"handshakes": 21808054,
+					"handshakes_failed": 0,
+					"session_reuses": 21807458
+				},
+				"requests": 21808225,
+				"header_time": 11,
+				"response_time": 11,
+				"responses": {
+					"1xx": 0,
+					"2xx": 19223635,
+					"3xx": 275,
+					"4xx": 1089,
+					"5xx": 0,
+					"codes": {
+						"200": 19223634,
+						"206": 1,
+						"301": 100,
+						"304": 175,
+						"404": 623,
+						"405": 466
+					},
+					"total": 19224999
+				},
+				"sent": 10110237497,
+				"received": 18490496811,
+				"fails": 2583040,
+				"unavail": 0,
+				"health_checks": {
+					"checks": 2842133,
+					"fails": 1,
+					"unhealthy": 1,
+					"last_passed": true
+				},
+				"downtime": 1012,
+				"selected": "2022-10-17T20:38:35Z"
+			}
+		],
+		"keepalive": 0,
+		"zombies": 0,
+		"zone": "demo-backend"
+	}`
+
+	validResponseGetUpstreamsZones = `{
+		"demo-backend": {
+			"zone": "foo.example.com-demo-backend"
+		},
+		"trac-backend": {
+			"zone": "bar.example.com-trac-backend"
+		},
+		"hg-backend": {
+			"zone": "bar.example.org-hg-backend"
+		},
+		"lxr-backend": {
+			"zone": "bar.example.org-lxr-backend"
+		}
 	}`
 )
