@@ -1,6 +1,7 @@
 package nginxhealthz
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -107,11 +108,9 @@ func NewClient(baseURL string, opts ...option) (*Client, error) {
 	}
 
 	c := Client{
-		version: 8,
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
-		},
+		version:    8,
+		baseURL:    baseURL,
+		httpClient: &http.Client{},
 	}
 
 	for _, opt := range opts {
@@ -122,10 +121,10 @@ func NewClient(baseURL string, opts ...option) (*Client, error) {
 	return &c, nil
 }
 
-func (c *Client) GetStatsFor(upstream string) (Stats, error) {
+func (c *Client) GetStatsFor(ctx context.Context, upstream string) (Stats, error) {
 	url := fmt.Sprintf("%s/api/%d/http/upstreams/%s", c.baseURL, c.version, upstream)
 	var res responseUpstream
-	if err := c.get(url, &res); err != nil {
+	if err := c.get(ctx, url, &res); err != nil {
 		return Stats{}, err
 	}
 	return calculateStatsFor(upstream, res)
@@ -148,11 +147,11 @@ func calculateStatsFor(upstream string, res responseUpstream) (Stats, error) {
 	return Stats{Total: total, Up: up, Down: down}, nil
 }
 
-func (c *Client) GetUpstreamsFor(hostname string) (map[string][]string, error) {
+func (c *Client) GetUpstreamsFor(ctx context.Context, hostname string) (map[string][]string, error) {
 	url := fmt.Sprintf("%s/api/%d/http/upstreams?fields=zone", c.baseURL, c.version)
 
 	var response interface{}
-	err := c.get(url, &response)
+	err := c.get(ctx, url, &response)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving zones: %w", err)
 	}
@@ -184,8 +183,8 @@ func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string]
 	return hostUpstreams
 }
 
-func (c *Client) GetStatsForHost(hostname string) (Stats, error) {
-	upstreams, err := c.GetUpstreamsFor(hostname)
+func (c *Client) GetStatsForHost(ctx context.Context, hostname string) (Stats, error) {
+	upstreams, err := c.GetUpstreamsFor(ctx, hostname)
 	if err != nil {
 		return Stats{}, fmt.Errorf("getting stats for host %s: %w", hostname, err)
 	}
@@ -193,10 +192,10 @@ func (c *Client) GetStatsForHost(hostname string) (Stats, error) {
 	if !ok {
 		return Stats{}, fmt.Errorf("no stat data for host %s", hostname)
 	}
-	return c.GetStatsForUpstreams(ux), nil
+	return c.GetStatsForUpstreams(ctx, ux), nil
 }
 
-func (c *Client) GetStatsForUpstreams(ux []string) Stats {
+func (c *Client) GetStatsForUpstreams(ctx context.Context, ux []string) Stats {
 	var total, up, down uint64
 
 	var wg sync.WaitGroup
@@ -205,7 +204,7 @@ func (c *Client) GetStatsForUpstreams(ux []string) Stats {
 	for _, u := range ux {
 		go func(upstream string) {
 			defer wg.Done()
-			stat, err := c.GetStatsFor(upstream)
+			stat, err := c.GetStatsFor(ctx, upstream)
 			if err != nil {
 				return
 			}
@@ -218,23 +217,29 @@ func (c *Client) GetStatsForUpstreams(ux []string) Stats {
 	return Stats{Total: int(total), Up: int(up), Down: int(down)}
 }
 
-func (c *Client) get(url string, data interface{}) error {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+func (c *Client) get(ctx context.Context, url string, data interface{}) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	res, err := c.httpClient.Do(req)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("sending request: %w", ctx.Err())
+		default:
+		}
 		return fmt.Errorf("sending request: %w", err)
 	}
-	defer res.Body.Close()
+	defer resp.Body.Close()
 
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("got response code: %v", res.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got response code: %v", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(res.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}

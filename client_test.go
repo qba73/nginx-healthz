@@ -1,12 +1,14 @@
 package nginxhealthz_test
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -101,7 +103,12 @@ func TestClientCallsValidPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = c.GetStatsFor("demo-backend")
+
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	_, err = c.GetStatsFor(ctx, "demo-backend")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,7 +132,11 @@ func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := c.GetStatsFor("demo-backend")
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	got, err := c.GetStatsFor(ctx, "demo-backend")
 	if err != nil {
 		t.Error(err)
 	}
@@ -155,7 +166,11 @@ func TestClientGetsUpstreamsForHostnameOnValidInput(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := c.GetUpstreamsFor("bar.example.org")
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	got, err := c.GetUpstreamsFor(ctx, "bar.example.org")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,19 +185,11 @@ func TestClientGetsUpstreamsForHostnameOnValidInput(t *testing.T) {
 func TestGetStatsForHost_ReturnsCorrectResultsForValidHost(t *testing.T) {
 	t.Parallel()
 
-	h := func(responseBody string, w http.ResponseWriter, r *http.Request, t *testing.T) {
-		t.Log(r.URL.Path)
-		_, err := io.WriteString(w, responseBody)
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	ts := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "lxr-backend") {
-			h(validResponseUpstreamLXRbackend, rw, r, t)
+			w.Write([]byte(validResponseUpstreamLXRbackend))
 		} else {
-			h(validResponseUpstreamHGbackend, rw, r, t)
+			w.Write([]byte(validResponseUpstreamHGbackend))
 		}
 	}))
 	defer ts.Close()
@@ -192,7 +199,11 @@ func TestGetStatsForHost_ReturnsCorrectResultsForValidHost(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := c.GetStatsForUpstreams([]string{"hg-backend", "lxr-backend"})
+	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	got := c.GetStatsForUpstreams(ctx, []string{"hg-backend", "lxr-backend"})
 
 	want := nginxhealthz.Stats{
 		Total: 4,
