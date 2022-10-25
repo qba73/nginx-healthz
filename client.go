@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -102,9 +101,8 @@ type Client struct {
 }
 
 func NewClient(baseURL string, opts ...option) (*Client, error) {
-	_, err := url.ParseRequestURI(baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %s, %w", baseURL, err)
+	if baseURL == "" {
+		return nil, errors.New("invalid base URL")
 	}
 
 	c := Client{
