@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -104,11 +103,7 @@ func TestClientCallsValidPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	_, err = c.GetStatsFor(ctx, "demo-backend")
+	_, err = c.GetStatsFor(context.Background(), "demo-backend")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -132,11 +127,7 @@ func TestClientGetsStatsOnValidInputWithAllServersUp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	got, err := c.GetStatsFor(ctx, "demo-backend")
+	got, err := c.GetStatsFor(context.Background(), "demo-backend")
 	if err != nil {
 		t.Error(err)
 	}
@@ -166,11 +157,7 @@ func TestClientGetsUpstreamsForHostnameOnValidInput(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	got, err := c.GetUpstreamsFor(ctx, "bar.example.org")
+	got, err := c.GetUpstreamsFor(context.Background(), "bar.example.org")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,11 +186,7 @@ func TestGetStatsForHost_ReturnsCorrectResultsForValidHost(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	got := c.GetStatsForUpstreams(ctx, []string{"hg-backend", "lxr-backend"})
+	got := c.GetStatsForUpstreams(context.Background(), []string{"hg-backend", "lxr-backend"})
 
 	want := nginxhealthz.Stats{
 		Total: 4,

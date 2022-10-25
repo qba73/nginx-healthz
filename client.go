@@ -86,7 +86,7 @@ func WithHTTPClient(h *http.Client) option {
 func WithVersion(v int) option {
 	return func(c *Client) error {
 		switch v {
-		case 1, 2, 3, 4, 5, 6, 7, 8:
+		case 4, 5, 6, 7, 8:
 			c.version = v
 			return nil
 		default:
@@ -165,19 +165,26 @@ func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string]
 	for u, v := range m {
 		switch vv := v.(type) {
 		case map[string]interface{}:
-			for _, z := range vv {
-				host := z.(string)
-				host = strings.Split(host, "-")[0]
-				if host != hostname {
-					continue
-				}
-				_, ok := hostUpstreams[host]
-				if !ok {
-					hostUpstreams[host] = []string{u}
-					continue
-				}
-				hostUpstreams[host] = append(hostUpstreams[host], u)
+			z := vv["zone"]
+			host := z.(string)
+
+			// We need to got from this: "bar.example.org-lxr-backend"
+			// to this: "bar.example.org", which is the hostname we
+			// are looking for.
+			host = strings.Split(host, "-")[0]
+			if host != hostname {
+				continue
 			}
+			// Checking is we have already host -> upstreams mapping in place
+			// if yes we need to add upstream to the slice, if not
+			// we create map: hostname => [upstream1, upstream2, upstreamN]
+			// and keep adding upstreams as we loop through m.
+			_, ok := hostUpstreams[host]
+			if !ok {
+				hostUpstreams[host] = []string{u}
+				continue
+			}
+			hostUpstreams[host] = append(hostUpstreams[host], u)
 		}
 	}
 	return hostUpstreams
@@ -195,13 +202,13 @@ func (c *Client) GetStatsForHost(ctx context.Context, hostname string) (Stats, e
 	return c.GetStatsForUpstreams(ctx, ux), nil
 }
 
-func (c *Client) GetStatsForUpstreams(ctx context.Context, ux []string) Stats {
+func (c *Client) GetStatsForUpstreams(ctx context.Context, upstreams []string) Stats {
 	var total, up, down uint64
 
 	var wg sync.WaitGroup
-	wg.Add(len(ux))
+	wg.Add(len(upstreams))
 
-	for _, u := range ux {
+	for _, u := range upstreams {
 		go func(upstream string) {
 			defer wg.Done()
 			stat, err := c.GetStatsFor(ctx, upstream)
