@@ -161,29 +161,33 @@ func hostnameUpstreamsFromResponse(hostname string, res interface{}) map[string]
 	m := res.(map[string]interface{})
 
 	for u, v := range m {
-		switch vv := v.(type) {
-		case map[string]interface{}:
-			z := vv["zone"]
-			host := z.(string)
-
-			// We need to got from this: "bar.example.org-lxr-backend"
-			// to this: "bar.example.org", which is the hostname we
-			// are looking for.
-			host = strings.Split(host, "-")[0]
-			if host != hostname {
-				continue
-			}
-			// Checking is we have already host -> upstreams mapping in place
-			// if yes we need to add upstream to the slice, if not
-			// we create map: hostname => [upstream1, upstream2, upstreamN]
-			// and keep adding upstreams as we loop through m.
-			_, ok := hostUpstreams[host]
-			if !ok {
-				hostUpstreams[host] = []string{u}
-				continue
-			}
-			hostUpstreams[host] = append(hostUpstreams[host], u)
+		value, ok := v.(map[string]interface{})
+		if !ok {
+			continue
 		}
+		z := value["zone"]
+		host, ok := z.(string)
+		if !ok {
+			continue
+		}
+
+		// We need to got from this: "bar.example.org-lxr-backend"
+		// to this: "bar.example.org", which is the hostname we
+		// are looking for.
+		host = strings.Split(host, "-")[0]
+		if host != hostname {
+			continue
+		}
+		// Checking is we have already host -> upstreams mapping in place
+		// if yes we need to add upstream to the slice, if not
+		// we create map: hostname => [upstream1, upstream2, upstreamN]
+		// and keep adding upstreams as we loop through m.
+		_, ok = hostUpstreams[host]
+		if !ok {
+			hostUpstreams[host] = []string{u}
+			continue
+		}
+		hostUpstreams[host] = append(hostUpstreams[host], u)
 	}
 	return hostUpstreams
 }
