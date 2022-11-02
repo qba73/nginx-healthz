@@ -232,14 +232,8 @@ func (c *Client) get(ctx context.Context, url string, data interface{}) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("sending request: %w", ctx.Err())
-		default:
-		}
 		return fmt.Errorf("sending request: %w", err)
 	}
 	defer resp.Body.Close()
@@ -252,7 +246,6 @@ func (c *Client) get(ctx context.Context, url string, data interface{}) error {
 	if err != nil {
 		return fmt.Errorf("reading response body: %w", err)
 	}
-
 	if err := json.Unmarshal(body, data); err != nil {
 		return fmt.Errorf("unmarshaling response body: %w", err)
 	}
